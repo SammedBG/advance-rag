@@ -1,0 +1,15 @@
+from pydantic import BaseModel, Field
+
+
+class DocumentChunk(BaseModel):
+    chunk_id: str
+    document_id: str
+
+    content: str
+
+    title: str
+    heading_path: list[str] = Field(default_factory=list)
+
+    chunk_index: int
+
+    metadata: dict = Field(default_factory=dict)
