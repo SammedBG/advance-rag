@@ -4,6 +4,7 @@ from app.context.compressor import ContextCompressor
 from app.context.parent_expander import ParentExpander
 from app.context.selector import ContextSelector
 from app.generation.citation import CitationValidator
+from app.generation.grounding import GroundingValidator
 from app.retrieval.hybrid import HybridSearch
 from app.retrieval.rrf import ReciprocalRankFusion
 from app.services.container import (
@@ -12,16 +13,23 @@ from app.services.container import (
     get_context_selector,
     get_embedding_service,
     get_generation_service,
+    get_grounding_validator,
     get_parent_expander,
     get_qdrant_service,
     get_reranker,
 )
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(
+    prefix="/search",
+    tags=["search"],
+)
 
 
 @router.get("")
-def search(query: str, limit: int = 5):
+def search(
+    query: str,
+    limit: int = 5,
+):
     if not query.strip():
         raise HTTPException(
             status_code=400,
@@ -49,13 +57,17 @@ def search(query: str, limit: int = 5):
             retrieval_limit=max(limit * 4, 20),
         )
 
-        parent_expander: ParentExpander = get_parent_expander()
+        parent_expander: ParentExpander = (
+            get_parent_expander()
+        )
 
         expanded_results = parent_expander.expand(
             reranked_results
         )
 
-        context_selector: ContextSelector = get_context_selector()
+        context_selector: ContextSelector = (
+            get_context_selector()
+        )
 
         selected_contexts = context_selector.select(
             expanded_results
@@ -78,10 +90,23 @@ def search(query: str, limit: int = 5):
                     "in the provided documentation."
                 ),
                 "citations": [],
+                "citation_validation": {
+                    "valid": False,
+                    "invalid_citations": [],
+                    "missing_citations": True,
+                },
+                "grounding": {
+                    "score": 0.0,
+                    "grounded": False,
+                    "matched_terms": [],
+                    "unmatched_terms": [],
+                },
                 "results": [],
                 "generation": None,
                 "context_stats": {
-                    "contexts_selected": len(selected_contexts),
+                    "contexts_selected": len(
+                        selected_contexts
+                    ),
                     "contexts_compressed": 0,
                     "selected_tokens": sum(
                         context.token_count
@@ -89,7 +114,9 @@ def search(query: str, limit: int = 5):
                     ),
                     "compressed_tokens": 0,
                     "compression_ratio": 0.0,
-                    "max_tokens": context_compressor.max_tokens,
+                    "max_tokens": (
+                        context_compressor.max_tokens
+                    ),
                 },
             }
 
@@ -107,6 +134,18 @@ def search(query: str, limit: int = 5):
             context_count=len(compressed_contexts),
         )
 
+        grounding_validator: GroundingValidator = (
+            get_grounding_validator()
+        )
+
+        grounding_validation = grounding_validator.validate(
+            answer=generated_answer.answer,
+            contexts=[
+                context.content
+                for context in compressed_contexts
+            ],
+        )
+
         return {
             "query": query,
             "answer": generated_answer.answer,
@@ -118,6 +157,16 @@ def search(query: str, limit: int = 5):
                 ),
                 "missing_citations": (
                     citation_validation.missing_citations
+                ),
+            },
+            "grounding": {
+                "score": grounding_validation.score,
+                "grounded": grounding_validation.grounded,
+                "matched_terms": (
+                    grounding_validation.matched_terms
+                ),
+                "unmatched_terms": (
+                    grounding_validation.unmatched_terms
                 ),
             },
             "results": [
@@ -151,7 +200,9 @@ def search(query: str, limit: int = 5):
                 "total_tokens": generated_answer.total_tokens,
             },
             "context_stats": {
-                "contexts_selected": len(selected_contexts),
+                "contexts_selected": len(
+                    selected_contexts
+                ),
                 "contexts_compressed": len(
                     compressed_contexts
                 ),
@@ -177,7 +228,9 @@ def search(query: str, limit: int = 5):
                     ),
                     3,
                 ),
-                "max_tokens": context_compressor.max_tokens,
+                "max_tokens": (
+                    context_compressor.max_tokens
+                ),
             },
         }
 
