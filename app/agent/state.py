@@ -10,4 +10,5 @@ class AgentState(TypedDict, total=False):
     grounding: dict
     context_stats: dict
     compressed_contexts: list
+    mcp_result: dict
     error: str

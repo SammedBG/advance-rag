@@ -21,6 +21,10 @@ class Settings(BaseSettings):
 
     postgres_url: str = ""
 
+    mcp_server_url: str = (
+        "http://127.0.0.1:8001/mcp"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

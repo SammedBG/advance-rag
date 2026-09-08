@@ -5,6 +5,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agent.nodes import (
     AgentDependencies,
     generate_node,
+    mcp_node,
     retrieve_node,
     route_node,
 )
@@ -12,24 +13,17 @@ from app.agent.state import AgentState
 
 
 def route_after_router(state: AgentState) -> str:
-    route = state.get("route", "rag")
+    route = state.get("route")
+
+    if route == "mcp":
+        return "mcp"
 
     if route == "rag":
         return "retrieve"
 
-    if route == "api":
-        return "api"
-
-    return "retrieve"
-
-
-def api_placeholder_node(state: AgentState) -> AgentState:
-    state["answer"] = (
-        "The API tool route has been selected, "
-        "but API integration has not been implemented yet."
+    raise ValueError(
+        f"Invalid agent route: {route}"
     )
-
-    return state
 
 
 def build_rag_graph(
@@ -59,8 +53,11 @@ def build_rag_graph(
     )
 
     graph.add_node(
-        "api",
-        api_placeholder_node,
+        "mcp",
+        partial(
+            mcp_node,
+            dependencies=dependencies,
+        ),
     )
 
     graph.add_edge(
@@ -73,7 +70,7 @@ def build_rag_graph(
         route_after_router,
         {
             "retrieve": "retrieve",
-            "api": "api",
+            "mcp": "mcp",
         },
     )
 
@@ -88,7 +85,7 @@ def build_rag_graph(
     )
 
     graph.add_edge(
-        "api",
+        "mcp",
         END,
     )
 

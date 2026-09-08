@@ -7,6 +7,7 @@ from app.context.selector import ContextSelector
 from app.generation.citation import CitationValidator
 from app.generation.grounding import GroundingValidator
 from app.generation.service import GenerationService
+from app.mcp.service import MCPService
 from app.retrieval.hybrid import HybridSearch
 
 
@@ -19,6 +20,7 @@ class AgentDependencies:
         context_compressor: ContextCompressor,
         generation_service: GenerationService,
         grounding_validator: GroundingValidator,
+        mcp_service: MCPService,
     ) -> None:
         self.search_service = search_service
         self.parent_expander = parent_expander
@@ -26,6 +28,7 @@ class AgentDependencies:
         self.context_compressor = context_compressor
         self.generation_service = generation_service
         self.grounding_validator = grounding_validator
+        self.mcp_service = mcp_service
 
 
 def route_node(state: AgentState) -> AgentState:
@@ -34,24 +37,20 @@ def route_node(state: AgentState) -> AgentState:
     if not query:
         raise ValueError("Query cannot be empty.")
 
-    api_patterns = [
-        r"\bget\b.*\bstatus\b",
-        r"\bcurrent\b.*\bstatus\b",
-        r"\bcurrent\b.*\bstate\b",
-        r"\bfetch\b.*\bdata\b",
-        r"\bfetch\b.*\blog\b",
-        r"\bshow\b.*\blog\b",
-        r"\bshow\b.*\bstatus\b",
-        r"\bcheck\b.*\bstatus\b",
-        r"\blive\b.*\bstatus\b",
-        r"\brunning\b.*\bpods?\b",
+    mcp_patterns = [
+        r"\bget\b.*\bpod\b.*\bstatus\b",
+        r"\bcurrent\b.*\bpod\b.*\bstatus\b",
+        r"\bcheck\b.*\bpod\b",
+        r"\bshow\b.*\bpod\b.*\bstatus\b",
+        r"\bpod\b.*\bstatus\b",
         r"\bpod\b.*\blogs?\b",
+        r"\brunning\b.*\bpods?\b",
         r"\bdeployment\b.*\bstatus\b",
     ]
 
-    for pattern in api_patterns:
+    for pattern in mcp_patterns:
         if re.search(pattern, query):
-            state["route"] = "api"
+            state["route"] = "mcp"
             return state
 
     state["route"] = "rag"
@@ -179,3 +178,146 @@ def generate_node(
     }
 
     return state
+
+
+def mcp_node(
+    state: AgentState,
+    dependencies: AgentDependencies,
+) -> AgentState:
+    query = state["query"].strip()
+
+    pod_name = _extract_pod_name(query)
+
+    if not pod_name:
+        pod_name = "example-pod"
+
+    result = dependencies.mcp_service.get_pod_status(
+        pod_name=pod_name,
+        namespace="default",
+    )
+
+    if not result.success:
+        state["error"] = (
+            result.error
+            or "MCP tool failed."
+        )
+
+        state["answer"] = (
+            "The MCP tool could not retrieve "
+            "the requested data."
+        )
+
+        state["mcp_result"] = {
+            "success": False,
+            "tool": result.tool_name,
+            "error": result.error,
+        }
+
+        return state
+
+    data = result.content
+
+    if not isinstance(data, dict):
+        state["error"] = (
+            "MCP tool returned an unexpected "
+            "response format."
+        )
+
+        state["answer"] = (
+            "The MCP tool returned an unexpected "
+            "response format."
+        )
+
+        state["mcp_result"] = {
+            "success": False,
+            "tool": result.tool_name,
+            "error": state["error"],
+            "raw_data": data,
+        }
+
+        return state
+
+    pod_name = str(
+        data.get(
+            "pod_name",
+            pod_name,
+        )
+    )
+
+    namespace = str(
+        data.get(
+            "namespace",
+            "default",
+        )
+    )
+
+    status = str(
+        data.get(
+            "status",
+            "unknown",
+        )
+    )
+
+    ready = data.get(
+        "ready",
+        False,
+    )
+
+    restarts = data.get(
+        "restarts",
+        0,
+    )
+
+    state["mcp_result"] = {
+        "success": True,
+        "tool": result.tool_name,
+        "data": data,
+    }
+
+    state["answer"] = (
+        f"Pod '{pod_name}' in namespace "
+        f"'{namespace}' is currently "
+        f"{status}. "
+        f"Ready: {ready}. "
+        f"Restarts: {restarts}."
+    )
+
+    state["citations"] = []
+    state["citation_validation"] = {
+        "valid": True,
+        "invalid_citations": [],
+        "missing_citations": False,
+    }
+
+    state["grounding"] = {
+        "score": 1.0,
+        "grounded": True,
+        "matched_terms": [],
+        "unmatched_terms": [],
+    }
+
+    return state
+
+
+def _extract_pod_name(
+    query: str,
+) -> str | None:
+    patterns = [
+        r"\bpod\s+status\s+for\s+([a-zA-Z0-9][a-zA-Z0-9.-]*)",
+        r"\bpod\s+status\s+of\s+([a-zA-Z0-9][a-zA-Z0-9.-]*)",
+        r"\bstatus\s+for\s+pod\s+([a-zA-Z0-9][a-zA-Z0-9.-]*)",
+        r"\bstatus\s+of\s+pod\s+([a-zA-Z0-9][a-zA-Z0-9.-]*)",
+        r"\bpod\s+([a-zA-Z0-9][a-zA-Z0-9.-]*)\s+status\b",
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            query,
+            flags=re.IGNORECASE,
+        )
+
+        if match:
+            return match.group(1)
+
+    return None

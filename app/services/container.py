@@ -11,6 +11,7 @@ from app.generation.llm import GroqLLM
 from app.generation.prompt_builder import PromptBuilder
 from app.generation.service import GenerationService
 from app.ingestion.pipeline import IngestionPipeline
+from app.mcp.service import MCPService
 from app.repositories.chunk_repository import ChunkRepository
 from app.retrieval.bm25 import BM25Index
 from app.retrieval.hybrid import HybridSearch
@@ -122,6 +123,13 @@ def get_hybrid_search() -> HybridSearch:
 
 
 @lru_cache
+def get_mcp_service() -> MCPService:
+    return MCPService(
+        server_url=settings.mcp_server_url,
+    )
+
+
+@lru_cache
 def get_agent_dependencies() -> AgentDependencies:
     return AgentDependencies(
         search_service=get_hybrid_search(),
@@ -130,6 +138,7 @@ def get_agent_dependencies() -> AgentDependencies:
         context_compressor=get_context_compressor(),
         generation_service=get_generation_service(),
         grounding_validator=get_grounding_validator(),
+        mcp_service=get_mcp_service(),
     )
 
 
