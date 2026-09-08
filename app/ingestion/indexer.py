@@ -1,7 +1,7 @@
-from app.context.parent_expander import ParentExpander
 from app.ingestion.pipeline import IngestionPipeline
 from app.models.chunk import DocumentChunk
 from app.models.document import Document
+from app.repositories.chunk_repository import ChunkRepository
 from app.retrieval.bm25 import BM25Index
 from app.services.embedding import EmbeddingService
 from app.services.qdrant import QdrantService
@@ -14,13 +14,13 @@ class IngestionIndexer:
         embedding_service: EmbeddingService,
         qdrant_service: QdrantService,
         bm25_index: BM25Index,
-    ):
+        chunk_repository: ChunkRepository,
+    ) -> None:
         self.ingestion_pipeline = ingestion_pipeline
         self.embedding_service = embedding_service
         self.qdrant_service = qdrant_service
         self.bm25_index = bm25_index
-
-        self.parent_expander: ParentExpander | None = None
+        self.chunk_repository = chunk_repository
 
     def index_file(
         self,
@@ -41,6 +41,9 @@ class IngestionIndexer:
                 "No child chunks were generated."
             )
 
+        # Store both parent and child chunks.
+        self.chunk_repository.save_many(chunks)
+
         texts = [
             chunk.content
             for chunk in child_chunks
@@ -56,7 +59,5 @@ class IngestionIndexer:
         )
 
         self.bm25_index.build(child_chunks)
-
-        self.parent_expander = ParentExpander(chunks)
 
         return document, chunks

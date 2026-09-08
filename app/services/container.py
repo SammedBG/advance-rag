@@ -3,6 +3,7 @@ from functools import lru_cache
 from app.context.parent_expander import ParentExpander
 from app.core.config import settings
 from app.ingestion.pipeline import IngestionPipeline
+from app.repositories.chunk_repository import ChunkRepository
 from app.retrieval.bm25 import BM25Index
 from app.retrieval.reranker import Reranker
 from app.services.embedding import EmbeddingService
@@ -45,5 +46,12 @@ def get_reranker() -> Reranker:
 
 
 @lru_cache
+def get_chunk_repository() -> ChunkRepository:
+    return ChunkRepository()
+
+
+@lru_cache
 def get_parent_expander() -> ParentExpander:
-    return ParentExpander([])
+    return ParentExpander(
+        chunk_repository=get_chunk_repository(),
+    )

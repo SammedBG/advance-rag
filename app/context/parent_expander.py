@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.models.chunk import DocumentChunk
+from app.repositories.chunk_repository import ChunkRepository
 from app.retrieval.reranker import RerankResult
 
 
@@ -20,74 +21,60 @@ class ExpandedContext:
 class ParentExpander:
     def __init__(
         self,
-        chunks: list[DocumentChunk],
+        chunk_repository: ChunkRepository,
     ) -> None:
-        self._parents: dict[str, DocumentChunk] = {
-            chunk.chunk_id: chunk
-            for chunk in chunks
-            if chunk.chunk_type == "parent"
-        }
+        self.chunk_repository = chunk_repository
 
     def expand(
         self,
         results: list[RerankResult],
     ) -> list[ExpandedContext]:
         expanded: list[ExpandedContext] = []
-        seen_parents: set[str] = set()
+        seen_parent_ids: set[str] = set()
 
         for result in results:
             child = result.chunk
-            parent_id = child.parent_id
 
-            # If there is no parent, use the retrieved child itself.
-            if not parent_id:
+            if not child.parent_id:
                 expanded.append(
-                    self._create_context(
+                    self._build_context(
                         chunk=child,
-                        score=result.score,
-                        dense_rank=result.dense_rank,
-                        sparse_rank=result.sparse_rank,
+                        result=result,
                     )
                 )
                 continue
 
-            # Avoid returning the same parent multiple times.
-            if parent_id in seen_parents:
+            if child.parent_id in seen_parent_ids:
                 continue
 
-            parent = self._parents.get(parent_id)
+            parent = self.chunk_repository.get(
+                child.parent_id
+            )
 
-            # If the parent is unavailable, fall back to the child.
             if parent is None:
                 expanded.append(
-                    self._create_context(
+                    self._build_context(
                         chunk=child,
-                        score=result.score,
-                        dense_rank=result.dense_rank,
-                        sparse_rank=result.sparse_rank,
+                        result=result,
                     )
                 )
                 continue
 
-            seen_parents.add(parent_id)
+            seen_parent_ids.add(child.parent_id)
 
             expanded.append(
-                self._create_context(
+                self._build_context(
                     chunk=parent,
-                    score=result.score,
-                    dense_rank=result.dense_rank,
-                    sparse_rank=result.sparse_rank,
+                    result=result,
                 )
             )
 
         return expanded
 
     @staticmethod
-    def _create_context(
+    def _build_context(
         chunk: DocumentChunk,
-        score: float,
-        dense_rank: int | None,
-        sparse_rank: int | None,
+        result: RerankResult,
     ) -> ExpandedContext:
         return ExpandedContext(
             chunk_id=chunk.chunk_id,
@@ -96,7 +83,7 @@ class ParentExpander:
             title=chunk.title,
             heading_path=chunk.heading_path,
             content=chunk.content,
-            retrieval_score=score,
-            dense_rank=dense_rank,
-            sparse_rank=sparse_rank,
+            retrieval_score=result.score,
+            dense_rank=result.dense_rank,
+            sparse_rank=result.sparse_rank,
         )

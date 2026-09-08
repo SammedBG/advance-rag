@@ -5,7 +5,6 @@ from app.retrieval.hybrid import HybridSearch
 from app.retrieval.rrf import ReciprocalRankFusion
 from app.services.container import (
     get_bm25_index,
-    get_chunk_repository,
     get_embedding_service,
     get_parent_expander,
     get_qdrant_service,
