@@ -6,3 +6,5 @@ python-dotenv
 qdrant-client
 sentence-transformers
 rank-bm25
+tiktoken
+pytest

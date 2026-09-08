@@ -1,36 +1,24 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    Distance,
-    PointStruct,
-    VectorParams,
-)
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.models.chunk import DocumentChunk
 
 
 class QdrantService:
-
     def __init__(
         self,
         url: str,
         collection_name: str,
         vector_size: int,
-    ):
+    ) -> None:
         self.collection_name = collection_name
-
-        self.client = QdrantClient(
-            url=url
-        )
-
+        self.client = QdrantClient(url=url)
         self.vector_size = vector_size
 
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-
-        collections = (
-            self.client.get_collections()
-        )
+        collections = self.client.get_collections()
 
         collection_names = {
             collection.name
@@ -53,20 +41,14 @@ class QdrantService:
         chunks: list[DocumentChunk],
         vectors: list[list[float]],
     ) -> None:
-
         if len(chunks) != len(vectors):
             raise ValueError(
-                "Number of chunks and vectors "
-                "must be identical."
+                "Number of chunks and vectors must be identical."
             )
 
-        points = []
+        points: list[PointStruct] = []
 
-        for chunk, vector in zip(
-            chunks,
-            vectors,
-        ):
-
+        for chunk, vector in zip(chunks, vectors):
             payload = {
                 "document_id": chunk.document_id,
                 "chunk_id": chunk.chunk_id,
@@ -75,6 +57,7 @@ class QdrantService:
                 "title": chunk.title,
                 "content": chunk.content,
                 "heading_path": chunk.heading_path,
+                "chunk_index": chunk.chunk_index,
                 "token_count": chunk.token_count,
                 "metadata": chunk.metadata,
             }
@@ -97,10 +80,11 @@ class QdrantService:
         vector: list[float],
         limit: int = 10,
     ):
-
-        return self.client.query_points(
+        response = self.client.query_points(
             collection_name=self.collection_name,
             query=vector,
             limit=limit,
             with_payload=True,
-        ).points
+        )
+
+        return response.points

@@ -1,43 +1,35 @@
+from app.context.parent_expander import ParentExpander
 from app.ingestion.pipeline import IngestionPipeline
 from app.models.chunk import DocumentChunk
 from app.models.document import Document
+from app.retrieval.bm25 import BM25Index
 from app.services.embedding import EmbeddingService
 from app.services.qdrant import QdrantService
 
 
 class IngestionIndexer:
-
     def __init__(
         self,
         ingestion_pipeline: IngestionPipeline,
         embedding_service: EmbeddingService,
         qdrant_service: QdrantService,
+        bm25_index: BM25Index,
     ):
-        self.ingestion_pipeline = (
-            ingestion_pipeline
-        )
-
-        self.embedding_service = (
-            embedding_service
-        )
-
+        self.ingestion_pipeline = ingestion_pipeline
+        self.embedding_service = embedding_service
         self.qdrant_service = qdrant_service
+        self.bm25_index = bm25_index
+
+        self.parent_expander: ParentExpander | None = None
 
     def index_file(
         self,
         file_path: str,
-    ) -> tuple[
-        Document,
-        list[DocumentChunk],
-    ]:
-
-        document, chunks = (
-            self.ingestion_pipeline.process(
-                file_path
-            )
+    ) -> tuple[Document, list[DocumentChunk]]:
+        document, chunks = self.ingestion_pipeline.process(
+            file_path
         )
 
-        # Only child chunks are embedded.
         child_chunks = [
             chunk
             for chunk in chunks
@@ -54,10 +46,8 @@ class IngestionIndexer:
             for chunk in child_chunks
         ]
 
-        vectors = (
-            self.embedding_service.embed_batch(
-                texts
-            )
+        vectors = self.embedding_service.embed_batch(
+            texts
         )
 
         self.qdrant_service.upsert_chunks(
@@ -65,4 +55,8 @@ class IngestionIndexer:
             vectors=vectors,
         )
 
-        return document, child_chunks
+        self.bm25_index.build(child_chunks)
+
+        self.parent_expander = ParentExpander(chunks)
+
+        return document, chunks
