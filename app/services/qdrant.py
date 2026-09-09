@@ -1,7 +1,12 @@
+import logging
+from typing import Any
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.models.chunk import DocumentChunk
+
+logger = logging.getLogger(__name__)
 
 
 class QdrantService:
@@ -12,8 +17,25 @@ class QdrantService:
         vector_size: int,
     ) -> None:
         self.collection_name = collection_name
-        self.client = QdrantClient(url=url)
         self.vector_size = vector_size
+
+        if url == ":memory:":
+            self.client = QdrantClient(location=":memory:")
+        else:
+            try:
+                self.client = QdrantClient(
+                    url=url,
+                    timeout=2.0,
+                    check_compatibility=False,
+                )
+                self.client.get_collections()
+            except Exception as exc:
+                logger.warning(
+                    "Unable to connect to Qdrant at '%s' (%s). Using in-memory Qdrant.",
+                    url,
+                    exc,
+                )
+                self.client = QdrantClient(location=":memory:")
 
         self._ensure_collection()
 
@@ -79,11 +101,13 @@ class QdrantService:
         self,
         vector: list[float],
         limit: int = 10,
+        query_filter: Any = None,
     ):
         response = self.client.query_points(
             collection_name=self.collection_name,
             query=vector,
             limit=limit,
+            query_filter=query_filter,
             with_payload=True,
         )
 

@@ -2,13 +2,14 @@ from dataclasses import dataclass
 
 from sentence_transformers import CrossEncoder
 
+from app.models.chunk import DocumentChunk
 from app.retrieval.rrf import FusionResult
 
 
 @dataclass
 class RerankResult:
     chunk_id: str
-    chunk: object
+    chunk: DocumentChunk
     score: float
     dense_rank: int | None
     sparse_rank: int | None

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced RAG Platform — Enterprise AI Knowledge Hub</title>
+    <meta name="description" content="Production-grade Advanced RAG platform with hybrid retrieval, agentic routing, MCP tools, evaluation scorecards, and real-time observability.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="brand-title">ADVANCED RAG</h1>
+                    <span class="brand-badge">v1.0 Production</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="playground" id="nav-playground">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-label">RAG & Agent Playground</span>
+                </button>
+                <button class="nav-item" data-tab="knowledge" id="nav-knowledge">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-label">Knowledge & Indexer</span>
+                </button>
+                <button class="nav-item" data-tab="mcp" id="nav-mcp">
+                    <span class="nav-icon">🛠️</span>
+                    <span class="nav-label">MCP & Tools Hub</span>
+                </button>
+                <button class="nav-item" data-tab="evaluation" id="nav-evaluation">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Evaluation Scorecard</span>
+                </button>
+                <button class="nav-item" data-tab="metrics" id="nav-metrics">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-label">Telemetry & Metrics</span>
+                </button>
+            </nav>
+
+            <div class="system-status-card">
+                <div class="status-header">
+                    <span class="status-dot online"></span>
+                    <span class="status-title">System Health</span>
+                </div>
+                <div class="status-details">
+                    <div class="status-row">
+                        <span class="status-label">Qdrant Vector DB</span>
+                        <span class="status-val tag-green" id="status-qdrant">Active</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">BM25 Sparse Index</span>
+                        <span class="status-val tag-cyan" id="status-bm25">14 Chunks</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">SQL Database</span>
+                        <span class="status-val tag-purple" id="status-db">Async Engine</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Redis Cache</span>
+                        <span class="status-val tag-amber" id="status-cache">Active (TTL)</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="page-title" id="current-tab-title">RAG & Agent Playground</h2>
+                    <p class="page-subtitle" id="current-tab-desc">Interactive multi-strategy retrieval, grounded generation, and agent reasoning.</p>
+                </div>
+                <div class="header-right">
+                    <div class="api-key-badge">
+                        <span class="key-icon">🔑</span>
+                        <span class="key-text" title="Using built-in development credentials">Dev Principal (Admin)</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-refresh-health" title="Check Service Status">
+                        🔄 Refresh Health
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: PLAYGROUND -->
+            <section class="tab-pane active" id="pane-playground">
+                <div class="playground-layout">
+                    <!-- Left: Query & Response Panel -->
+                    <div class="query-panel">
+                        <div class="card card-glow">
+                            <div class="card-header">
+                                <div class="header-pill-group">
+                                    <label class="mode-pill active" data-mode="agent">
+                                        <input type="radio" name="query-mode" value="agent" checked>
+                                        🤖 Agentic RAG
+                                    </label>
+                                    <label class="mode-pill" data-mode="hybrid">
+                                        <input type="radio" name="query-mode" value="hybrid">
+                                        🔍 Hybrid Search
+                                    </label>
+                                </div>
+                                <div class="tech-filter-wrap">
+                                    <select id="technology-filter" class="form-select">
+                                        <option value="">All Technologies</option>
+                                        <option value="kubernetes">Kubernetes</option>
+                                        <option value="redis">Redis</option>
+                                        <option value="fastapi">FastAPI</option>
+                                        <option value="docker">Docker</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="query-input-box">
+                                <textarea id="query-input" rows="3" placeholder="Ask any question across the technical documentation, or trigger MCP tools (e.g. 'Get pod status for payment-app')..."></textarea>
+                                <div class="input-actions">
+                                    <div class="quick-chips">
+                                        <span class="chip" data-query="What causes a Kubernetes Pod to enter CrashLoopBackOff?">☸️ Pod CrashLoopBackOff</span>
+                                        <span class="chip" data-query="Explain how the Cache-Aside pattern works in Redis.">⚡ Redis Cache-Aside</span>
+                                        <span class="chip" data-query="How does dependency injection work in FastAPI?">🚀 FastAPI DI</span>
+                                        <span class="chip" data-query="get pod status for payment-service">🛠️ MCP Pod Status</span>
+                                        <span class="chip" data-query="check cluster health">🏥 MCP Cluster Health</span>
+                                    </div>
+                                    <button class="btn btn-primary" id="btn-submit-query">
+                                        <span class="btn-icon">⚡</span>
+                                        <span>Execute Query</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Response View -->
+                        <div class="card response-card hidden" id="response-container">
+                            <div class="response-header">
+                                <div class="route-badge" id="route-badge">
+                                    <span class="badge-icon">📍</span>
+                                    <span id="route-text">Route: RAG</span>
+                                </div>
+                                <div class="exec-stats" id="exec-stats">
+                                    <span class="stat-item" id="stat-latency">⏱️ 0.42s</span>
+                                    <span class="stat-item" id="stat-tokens">🎟️ 1,240 tokens</span>
+                                    <span class="stat-item" id="stat-cache">📦 Cache: Miss</span>
+                                </div>
+                            </div>
+
+                            <div class="answer-section">
+                                <h3 class="section-title">Synthesized Answer</h3>
+                                <div class="answer-content markdown-body" id="answer-text"></div>
+                            </div>
+
+                            <!-- Quality & Grounding Scorecard -->
+                            <div class="grounding-bar">
+                                <div class="grounding-meter">
+                                    <div class="meter-label">
+                                        <span>Factual Grounding</span>
+                                        <strong id="grounding-score-val">0.92</strong>
+                                    </div>
+                                    <div class="meter-track">
+                                        <div class="meter-fill" id="grounding-fill" style="width: 92%;"></div>
+                                    </div>
+                                </div>
+                                <div class="citation-validity-box" id="citation-badge">
+                                    <span class="cit-status-icon">✓</span>
+                                    <span id="cit-status-text">Citations Valid: [1], [2]</span>
+                                </div>
+                            </div>
+
+                            <!-- Agent Reasoning Trace -->
+                            <div class="reasoning-trace-box" id="reasoning-trace-box">
+                                <h4 class="trace-title">🤖 Agent Execution Trace</h4>
+                                <ul class="trace-timeline" id="trace-timeline"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Retrieved Chunks & Context Engineering Inspector -->
+                    <div class="context-panel">
+                        <div class="card context-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Retrieved Knowledge Chunks</h3>
+                                <span class="badge-count" id="chunk-count-badge">0 Contexts</span>
+                            </div>
+                            <div class="chunks-list" id="chunks-list">
+                                <div class="empty-state" id="chunks-empty">
+                                    <span class="empty-icon">🔍</span>
+                                    <p>Execute a query to inspect ranked dense/sparse candidates, RRF fusion scores, and parent chunk expansions.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: KNOWLEDGE BASE & INDEXER -->
+            <section class="tab-pane" id="pane-knowledge">
+                <div class="knowledge-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Document Ingestion & Indexer</h3>
+                            <span class="badge-accent">Structure-Aware Chunker</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="ingest-form">
+                                <div class="form-group">
+                                    <label class="form-label">Document Title</label>
+                                    <input type="text" id="doc-title" class="form-input" placeholder="e.g., PostgreSQL Replication Guide" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Technology Tag</label>
+                                        <input type="text" id="doc-tech" class="form-input" placeholder="e.g., postgresql, redis, k8s">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Access Scope</label>
+                                        <select id="doc-scope" class="form-select">
+                                            <option value="public">Public</option>
+                                            <option value="internal">Internal</option>
+                                            <option value="confidential">Confidential</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Document Content (Markdown / Text)</label>
+                                    <textarea id="doc-content" rows="8" class="form-textarea" placeholder="# Section Heading&#10;&#10;Document content and paragraphs to be hierarchically indexed..." required></textarea>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary" id="btn-ingest">
+                                        <span>⚡ Ingest & Upsert Vectors</span>
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="ingest-result hidden" id="ingest-result-box"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Active Knowledge Documents</h3>
+                            <button class="btn btn-secondary btn-sm" id="btn-refresh-docs">🔄 Reload Documents</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="docs-table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Document</th>
+                                            <th>Technology</th>
+                                            <th>Parent Chunks</th>
+                                            <th>Child Chunks</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="docs-table-body">
+                                        <tr>
+                                            <td><strong>Kubernetes Architecture</strong></td>
+                                            <td><span class="tag-cyan">kubernetes</span></td>
+                                            <td>3</td>
+                                            <td>3</td>
+                                            <td><span class="tag-green">Indexed</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Redis In-Memory Store</strong></td>
+                                            <td><span class="tag-amber">redis</span></td>
+                                            <td>4</td>
+                                            <td>4</td>
+                                            <td><span class="tag-green">Indexed</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>FastAPI Framework</strong></td>
+                                            <td><span class="tag-purple">fastapi</span></td>
+                                            <td>4</td>
+                                            <td>4</td>
+                                            <td><span class="tag-green">Indexed</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Docker Containerization</strong></td>
+                                            <td><span class="tag-cyan">docker</span></td>
+                                            <td>3</td>
+                                            <td>3</td>
+                                            <td><span class="tag-green">Indexed</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: MCP & TOOLS HUB -->
+            <section class="tab-pane" id="pane-mcp">
+                <div class="mcp-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Model Context Protocol (MCP) Tools</h3>
+                            <span class="tag-purple">MCP 2.x Server</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="section-desc">Test real-time external tool execution callable by the Agentic workflow when retrieval alone is insufficient.</p>
+                            
+                            <div class="tools-tester">
+                                <div class="tool-select-row">
+                                    <label class="form-label">Select Tool:</label>
+                                    <select id="mcp-tool-select" class="form-select">
+                                        <option value="get_pod_status_tool">get_pod_status_tool (Kubernetes Inspection)</option>
+                                        <option value="get_cluster_health_tool">get_cluster_health_tool (Cluster Health)</option>
+                                        <option value="search_knowledge_base_tool">search_knowledge_base_tool (Direct Search)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="mcp-args-group">
+                                    <label class="form-label">Pod Name:</label>
+                                    <input type="text" id="mcp-pod-name" class="form-input" value="auth-service-pod">
+                                </div>
+                                <button class="btn btn-primary" id="btn-invoke-mcp">Execute MCP Tool</button>
+                            </div>
+
+                            <div class="tool-result-viewer hidden" id="mcp-output-box">
+                                <h4 class="trace-title">Execution Result (JSON)</h4>
+                                <pre class="code-block" id="mcp-raw-json"></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Cluster & Container Telemetry Simulator</h3>
+                            <span class="tag-green">Real-Time State</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="pod-grid" id="pod-cards-container">
+                                <div class="pod-card">
+                                    <div class="pod-card-header">
+                                        <strong>auth-service-pod</strong>
+                                        <span class="tag-green">Running</span>
+                                    </div>
+                                    <div class="pod-details">
+                                        <span>Ready: 1/1</span>
+                                        <span>Restarts: 0</span>
+                                        <span>Node: worker-01</span>
+                                    </div>
+                                </div>
+                                <div class="pod-card warning">
+                                    <div class="pod-card-header">
+                                        <strong>payment-worker-crash</strong>
+                                        <span class="tag-red">CrashLoopBackOff</span>
+                                    </div>
+                                    <div class="pod-details">
+                                        <span>Ready: 0/1</span>
+                                        <span>Restarts: 14</span>
+                                        <span>Node: worker-02</span>
+                                    </div>
+                                </div>
+                                <div class="pod-card">
+                                    <div class="pod-card-header">
+                                        <strong>redis-cluster-master</strong>
+                                        <span class="tag-green">Running</span>
+                                    </div>
+                                    <div class="pod-details">
+                                        <span>Ready: 1/1</span>
+                                        <span>Restarts: 0</span>
+                                        <span>Node: worker-01</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: EVALUATION SCORECARD -->
+            <section class="tab-pane" id="pane-evaluation">
+                <div class="eval-dashboard">
+                    <div class="kpi-banner">
+                        <div class="kpi-card">
+                            <span class="kpi-title">Mean Reciprocal Rank (MRR)</span>
+                            <span class="kpi-val text-cyan">0.9286</span>
+                            <span class="kpi-sub">Target &gt; 0.85 (PASSED)</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Hit Rate @ 5</span>
+                            <span class="kpi-val text-green">1.0000</span>
+                            <span class="kpi-sub">100% Top-5 Coverage</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">nDCG @ 5</span>
+                            <span class="kpi-val text-purple">0.9473</span>
+                            <span class="kpi-sub">Ranking Quality</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Citation Validity Rate</span>
+                            <span class="kpi-val text-amber">1.0000</span>
+                            <span class="kpi-sub">100% Grounded Citations</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Gold-Standard Test Benchmark Breakdown (7 Queries)</h3>
+                            <span class="badge-accent">Automated Evaluator</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="docs-table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Query ID</th>
+                                            <th>Evaluated Query</th>
+                                            <th>Target Doc</th>
+                                            <th>Reciprocal Rank</th>
+                                            <th>Hit @ 1</th>
+                                            <th>Faithfulness</th>
+                                            <th>Grounding</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="eval-table-body">
+                                        <tr>
+                                            <td><code>q_k8s_01</code></td>
+                                            <td>What causes a Kubernetes Pod to enter CrashLoopBackOff?</td>
+                                            <td>kubernetes</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.45</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_k8s_02</code></td>
+                                            <td>What should you check when seeing ImagePullBackOff?</td>
+                                            <td>kubernetes</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.48</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_fastapi_01</code></td>
+                                            <td>How does dependency injection work in FastAPI?</td>
+                                            <td>fastapi</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.42</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_fastapi_02</code></td>
+                                            <td>When should you use async def vs standard def in FastAPI?</td>
+                                            <td>fastapi</td>
+                                            <td><span class="tag-amber">0.50</span></td>
+                                            <td><span class="tag-amber">Hit @ 2</span></td>
+                                            <td>0.40</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_docker_01</code></td>
+                                            <td>What are best practices for optimizing Docker images?</td>
+                                            <td>docker</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.46</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_redis_01</code></td>
+                                            <td>What are common eviction policies available in Redis?</td>
+                                            <td>redis</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.45</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>q_redis_02</code></td>
+                                            <td>Explain how the Cache-Aside pattern works with Redis.</td>
+                                            <td>redis</td>
+                                            <td><span class="tag-green">1.00</span></td>
+                                            <td><span class="tag-green">✓ Yes</span></td>
+                                            <td>0.49</td>
+                                            <td><span class="tag-green">Grounded</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: OBSERVABILITY & METRICS -->
+            <section class="tab-pane" id="pane-metrics">
+                <div class="metrics-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Prometheus Metric Exporter (/metrics)</h3>
+                            <button class="btn btn-secondary btn-sm" id="btn-scrape-metrics">⚡ Scrape Now</button>
+                        </div>
+                        <div class="card-body">
+                            <pre class="code-block" id="metrics-raw-output">Scraping live Prometheus metrics from /metrics endpoint...</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chunk Expansion Modal -->
+    <div class="modal hidden" id="chunk-modal">
+        <div class="modal-backdrop" id="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Chunk Inspector</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-meta-grid" id="modal-meta"></div>
+                <h4 class="trace-title">Chunk Content</h4>
+                <pre class="code-block" id="modal-content"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import re
-from uuid import uuid4
+from uuid import uuid5, NAMESPACE_URL
 
 from app.ingestion.tokenizer import TokenCounter
 from app.models.chunk import DocumentChunk
@@ -7,9 +7,15 @@ from app.models.document import Document
 
 
 class StructureAwareChunker:
-
-    HEADING_PATTERN = re.compile(
+    MD_HEADING_PATTERN = re.compile(
         r"^(#{1,6})\s+(.+)$"
+    )
+    KEYWORD_HEADING_PATTERN = re.compile(
+        r"^(SECTION|CHAPTER|PART|MODULE|APPENDIX)\s*([0-9A-Za-z\.\-_]*)\s*[:\-–—]\s*(.+)$",
+        re.IGNORECASE,
+    )
+    NUMBERED_HEADING_PATTERN = re.compile(
+        r"^(\d+(?:\.\d+)*)\.?\s+([A-Z][A-Za-z0-9\s\-_,:;()'\"]{2,80})$"
     )
 
     def __init__(
@@ -33,9 +39,15 @@ class StructureAwareChunker:
 
         chunks: list[DocumentChunk] = []
 
-        for section in sections:
+        for section_index, section in enumerate(sections):
 
-            parent_id = str(uuid4())
+            # Deterministic parent ID.
+            # Same document + same section = same ID.
+            parent_id = self._make_id(
+                document.document_id,
+                "parent",
+                section_index,
+            )
 
             parent_metadata = (
                 self._build_metadata(
@@ -51,27 +63,18 @@ class StructureAwareChunker:
 
             parent = DocumentChunk(
                 chunk_id=parent_id,
-
                 document_id=document.document_id,
-
                 content=section["content"],
-
                 title=document.title,
-
                 heading_path=section[
                     "heading_path"
                 ],
-
                 chunk_index=len(chunks),
-
                 chunk_type="parent",
-
                 parent_id=None,
-
                 token_count=self.token_counter.count(
                     section["content"]
                 ),
-
                 metadata=parent_metadata,
             )
 
@@ -86,6 +89,7 @@ class StructureAwareChunker:
                     ],
                     parent_id=parent_id,
                     starting_index=len(chunks),
+                    section_index=section_index,
                 )
             )
 
@@ -107,6 +111,7 @@ class StructureAwareChunker:
         current_content: list[str] = []
 
         def flush():
+
             if not current_content:
                 return
 
@@ -126,37 +131,85 @@ class StructureAwareChunker:
 
             current_content.clear()
 
-        for line in lines:
+        i = 0
+        n = len(lines)
+        while i < n:
+            line = lines[i]
+            stripped = line.strip()
 
-            match = self.HEADING_PATTERN.match(
-                line
-            )
+            if not stripped:
+                current_content.append(line)
+                i += 1
+                continue
 
+            # Markdown heading (# Heading)
+            match = self.MD_HEADING_PATTERN.match(stripped)
             if match:
-
                 flush()
+                level = len(match.group(1))
+                heading = match.group(2).strip()
+                heading_stack = heading_stack[: level - 1]
+                heading_stack.append(heading)
+                i += 1
+                continue
 
-                level = len(
-                    match.group(1)
-                )
+            # Setext underlines (Title \n === or ---)
+            if i + 1 < n and len(stripped) <= 100:
+                next_stripped = lines[i + 1].strip()
+                if len(next_stripped) >= 3 and all(c == "=" for c in next_stripped):
+                    flush()
+                    heading_stack = [stripped]
+                    i += 2
+                    continue
+                elif (
+                    len(next_stripped) >= 3
+                    and all(c == "-" for c in next_stripped)
+                    and not stripped.startswith("-")
+                ):
+                    flush()
+                    heading_stack = heading_stack[:1]
+                    heading_stack.append(stripped)
+                    i += 2
+                    continue
 
-                heading = (
-                    match.group(2).strip()
-                )
+            # Keyword heading (SECTION 1: Overview, CHAPTER: Setup)
+            kw_match = self.KEYWORD_HEADING_PATTERN.match(stripped)
+            if kw_match:
+                flush()
+                heading = stripped
+                heading_stack = heading_stack[:1]
+                heading_stack.append(heading)
+                i += 1
+                continue
 
-                heading_stack = (
-                    heading_stack[: level - 1]
-                )
-
-                heading_stack.append(
-                    heading
-                )
-
+            # Numbered heading (1. Introduction, 1.2 System Details)
+            num_match = self.NUMBERED_HEADING_PATTERN.match(stripped)
+            if num_match:
+                flush()
+                dots = num_match.group(1).count(".")
+                level = min(dots + 1, 6)
+                heading = stripped
+                heading_stack = heading_stack[: level - 1]
+                heading_stack.append(heading)
+                i += 1
                 continue
 
             current_content.append(line)
+            i += 1
 
         flush()
+
+        if not sections and current_content:
+            content = "\n".join(current_content).strip()
+            if content:
+                sections.append(
+                    {
+                        "content": content,
+                        "heading_path": (
+                            [document.title] if document.title else []
+                        ),
+                    }
+                )
 
         return sections
 
@@ -167,6 +220,7 @@ class StructureAwareChunker:
         heading_path: list[str],
         parent_id: str,
         starting_index: int,
+        section_index: int,
     ) -> list[DocumentChunk]:
 
         words = content.split()
@@ -193,7 +247,14 @@ class StructureAwareChunker:
                     " ".join(current_words)
                 )
 
-                child_id = str(uuid4())
+                child_index = len(children)
+
+                child_id = self._make_id(
+                    document.document_id,
+                    "child",
+                    section_index,
+                    child_index,
+                )
 
                 child_metadata = (
                     self._build_metadata(
@@ -208,30 +269,21 @@ class StructureAwareChunker:
                 children.append(
                     DocumentChunk(
                         chunk_id=child_id,
-
                         document_id=(
                             document.document_id
                         ),
-
                         content=child_content,
-
                         title=document.title,
-
                         heading_path=(
                             heading_path.copy()
                         ),
-
                         chunk_index=(
                             starting_index
-                            + len(children)
+                            + child_index
                         ),
-
                         chunk_type="child",
-
                         parent_id=parent_id,
-
                         token_count=current_tokens,
-
                         metadata=child_metadata,
                     )
                 )
@@ -262,7 +314,14 @@ class StructureAwareChunker:
                 " ".join(current_words)
             )
 
-            child_id = str(uuid4())
+            child_index = len(children)
+
+            child_id = self._make_id(
+                document.document_id,
+                "child",
+                section_index,
+                child_index,
+            )
 
             child_metadata = (
                 self._build_metadata(
@@ -277,30 +336,21 @@ class StructureAwareChunker:
             children.append(
                 DocumentChunk(
                     chunk_id=child_id,
-
                     document_id=(
                         document.document_id
                     ),
-
                     content=child_content,
-
                     title=document.title,
-
                     heading_path=(
                         heading_path.copy()
                     ),
-
                     chunk_index=(
                         starting_index
-                        + len(children)
+                        + child_index
                     ),
-
                     chunk_type="child",
-
                     parent_id=parent_id,
-
                     token_count=current_tokens,
-
                     metadata=child_metadata,
                 )
             )
@@ -336,6 +386,38 @@ class StructureAwareChunker:
             token_count += tokens
 
         return overlap
+
+    @staticmethod
+    def _make_id(
+        document_id: str,
+        chunk_type: str,
+        section_index: int,
+        child_index: int | None = None,
+    ) -> str:
+
+        if child_index is None:
+
+            value = (
+                f"{document_id}:"
+                f"{chunk_type}:"
+                f"{section_index}"
+            )
+
+        else:
+
+            value = (
+                f"{document_id}:"
+                f"{chunk_type}:"
+                f"{section_index}:"
+                f"{child_index}"
+            )
+
+        return str(
+            uuid5(
+                NAMESPACE_URL,
+                value,
+            )
+        )
 
     def _build_metadata(
         self,

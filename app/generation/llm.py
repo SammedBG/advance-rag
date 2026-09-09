@@ -1,8 +1,9 @@
+import logging
 from dataclasses import dataclass
 
 from groq import Groq
 
-from app.core.config import settings
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -71,10 +72,4 @@ class GroqLLM:
             output_tokens=output_tokens,
             total_tokens=input_tokens + output_tokens,
         )
-
-
-def get_llm() -> GroqLLM:
-    return GroqLLM(
-        api_key=settings.llm_api_key,
-        model=settings.llm_model,
-    )
+

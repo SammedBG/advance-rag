@@ -11,9 +11,14 @@ class RAGAgent:
             dependencies=dependencies
         )
 
-    def run(self, query: str) -> dict:
+    def run(
+        self,
+        query: str,
+    ) -> dict:
         if not query.strip():
-            raise ValueError("Query cannot be empty.")
+            raise ValueError(
+                "Query cannot be empty."
+            )
 
         state = self.graph.invoke(
             {
@@ -23,22 +28,15 @@ class RAGAgent:
 
         return {
             "query": state.get("query"),
+            "original_query": state.get("original_query", state.get("query")),
             "route": state.get("route", "rag"),
+            "iteration_count": state.get("iteration_count", 0),
+            "reasoning_trace": state.get("reasoning_trace", []),
             "answer": state.get("answer", ""),
-            "citations": state.get(
-                "citations",
-                [],
-            ),
-            "citation_validation": state.get(
-                "citation_validation",
-                {},
-            ),
-            "grounding": state.get(
-                "grounding",
-                {},
-            ),
-            "context_stats": state.get(
-                "context_stats",
-                {},
-            ),
+            "citations": state.get("citations", []),
+            "citation_validation": state.get("citation_validation", {}),
+            "grounding": state.get("grounding", {}),
+            "context_stats": state.get("context_stats", {}),
+            "mcp_result": state.get("mcp_result", {}),
+            "error": state.get("error"),
         }

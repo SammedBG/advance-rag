@@ -1,13 +1,74 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: advanced-rag-api
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Advanced RAG
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=documentation_chunks
+      - DATABASE_URL=postgresql+asyncpg://rag_user:rag_password@postgres:5432/rag_db
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+    depends_on:
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   qdrant:
-    image: qdrant/qdrant
+    image: qdrant/qdrant:v1.12.1
     container_name: advanced-rag-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: advanced-rag-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+      POSTGRES_DB: rag_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: advanced-rag-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   qdrant_data:
+  postgres_data:
+  redis_data:

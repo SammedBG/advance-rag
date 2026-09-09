@@ -1,0 +1,13 @@
+[project]
+name = "advanced-rag"
+version = "1.0.0"
+description = "Production-grade Retrieval-Augmented Generation platform"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
