@@ -14,6 +14,6 @@ class DocumentChunk(BaseModel):
     chunk_index: int
     chunk_type: str
     parent_id: str | None = None
-    token_count: int
+    token_count: int = 0
 
     metadata: dict = Field(default_factory=dict)
