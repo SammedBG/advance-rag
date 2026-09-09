@@ -1,20 +1,41 @@
+# Virtual Environments
 .venv/
-.env.example
-evaluation_scorecard.json
+venv/
+ENV/
+env/
 
+# Environment variables & secrets (keep .env.example tracked)
+.env
+*.env
+.env.*
+!.env.example
+
+# Byte-compiled / optimized / cache files
 __pycache__/
 *.py[cod]
+*$py.class
+*.log
 
-.env
-
+# Pytest & Coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 
+# Local Storage & Database files
+*.db
+*.sqlite
+*.sqlite3
 data/indexes/
 data/processed/
+qdrant_storage/
 
+# Evaluation outputs & reports
+evaluation_scorecard.json
+evaluation_report.md
+
+# IDE & OS
 .vscode/
 .idea/
-
 .DS_Store
+Thumbs.db
