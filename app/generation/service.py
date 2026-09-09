@@ -27,6 +27,7 @@ class GenerationService:
         self,
         query: str,
         contexts: list[CompressedContext],
+        history: list[dict] | None = None,
     ) -> GeneratedAnswer:
         if not query.strip():
             raise ValueError("Query cannot be empty.")
@@ -37,6 +38,7 @@ class GenerationService:
         system_prompt, user_prompt = self.prompt_builder.build(
             query=query,
             contexts=contexts,
+            history=history,
         )
 
         response = self.llm.generate(
@@ -53,3 +55,29 @@ class GenerationService:
             output_tokens=response.output_tokens,
             total_tokens=response.total_tokens,
         )
+
+    def generate_stream(
+        self,
+        query: str,
+        contexts: list[CompressedContext],
+        history: list[dict] | None = None,
+    ):
+        if not query.strip():
+            raise ValueError("Query cannot be empty.")
+
+        if not contexts:
+            raise ValueError("No contexts available for generation.")
+
+        system_prompt, user_prompt = self.prompt_builder.build(
+            query=query,
+            contexts=contexts,
+            history=history,
+        )
+
+        for chunk in self.llm.generate_stream(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.0,
+            max_tokens=1000,
+        ):
+            yield chunk

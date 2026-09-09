@@ -40,23 +40,33 @@ class QdrantService:
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-        collections = self.client.get_collections()
+        try:
+            collections = self.client.get_collections()
+            collection_names = {
+                collection.name
+                for collection in collections.collections
+            }
 
-        collection_names = {
-            collection.name
-            for collection in collections.collections
-        }
+            if self.collection_name in collection_names:
+                return
 
-        if self.collection_name in collection_names:
-            return
-
-        self.client.create_collection(
-            collection_name=self.collection_name,
-            vectors_config=VectorParams(
-                size=self.vector_size,
-                distance=Distance.COSINE,
-            ),
-        )
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(
+                    size=self.vector_size,
+                    distance=Distance.COSINE,
+                ),
+            )
+        except Exception as exc:
+            logger.warning("Error ensuring collection: %s. Reinitializing in-memory client.", exc)
+            self.client = QdrantClient(location=":memory:")
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(
+                    size=self.vector_size,
+                    distance=Distance.COSINE,
+                ),
+            )
 
     def upsert_chunks(
         self,
@@ -92,10 +102,19 @@ class QdrantService:
                 )
             )
 
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=points,
-        )
+        try:
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=points,
+            )
+        except Exception as exc:
+            logger.warning("Qdrant upsert failed (%s). Falling back to in-memory Qdrant.", exc)
+            self.client = QdrantClient(location=":memory:")
+            self._ensure_collection()
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=points,
+            )
 
     def search(
         self,
@@ -103,12 +122,17 @@ class QdrantService:
         limit: int = 10,
         query_filter: Any = None,
     ):
-        response = self.client.query_points(
-            collection_name=self.collection_name,
-            query=vector,
-            limit=limit,
-            query_filter=query_filter,
-            with_payload=True,
-        )
-
-        return response.points
+        try:
+            response = self.client.query_points(
+                collection_name=self.collection_name,
+                query=vector,
+                limit=limit,
+                query_filter=query_filter,
+                with_payload=True,
+            )
+            return response.points
+        except Exception as exc:
+            logger.warning("Qdrant search failed (%s). Falling back to in-memory Qdrant.", exc)
+            self.client = QdrantClient(location=":memory:")
+            self._ensure_collection()
+            return []

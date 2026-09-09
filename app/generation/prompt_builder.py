@@ -28,6 +28,7 @@ class PromptBuilder:
         self,
         query: str,
         contexts: list[CompressedContext],
+        history: list[dict] | None = None,
     ) -> tuple[str, str]:
         if not query.strip():
             raise ValueError("Query cannot be empty.")
@@ -51,7 +52,15 @@ class PromptBuilder:
 
         context_text = "\n\n".join(context_parts)
 
-        user_prompt = f"""Documentation Context:
+        history_text = ""
+        if history:
+            formatted_history = []
+            for msg in history[-5:]:
+                role = "User" if msg.get("role") == "user" else "Assistant"
+                formatted_history.append(f"{role}: {msg.get('content', '')}")
+            history_text = "Conversation History:\n" + "\n".join(formatted_history) + "\n\n"
+
+        user_prompt = f"""{history_text}Documentation Context:
 
 {context_text}
 

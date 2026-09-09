@@ -21,12 +21,16 @@ class ConversationRepository:
         self,
         conversation_id: str | None = None,
         title: str | None = None,
+        tenant_id: str = "default",
+        user_id: str | None = None,
     ) -> str:
         cid = conversation_id or str(uuid.uuid4())
         now = datetime.now(timezone.utc)
         self._conversations[cid] = {
             "conversation_id": cid,
             "title": title or f"Conversation {cid[:8]}",
+            "tenant_id": tenant_id,
+            "user_id": user_id,
             "created_at": now,
             "updated_at": now,
         }
@@ -69,7 +73,12 @@ class ConversationRepository:
     def get_raw_messages(self, conversation_id: str) -> list[dict[str, Any]]:
         return list(self._messages.get(conversation_id, []))
 
-    def list_conversations(self) -> list[dict[str, Any]]:
+    def get_conversation(self, conversation_id: str) -> dict[str, Any] | None:
+        return self._conversations.get(conversation_id)
+
+    def list_conversations(self, tenant_id: str | None = None) -> list[dict[str, Any]]:
+        if tenant_id:
+            return [c for c in self._conversations.values() if c.get("tenant_id") == tenant_id]
         return list(self._conversations.values())
 
     def delete_conversation(self, conversation_id: str) -> bool:

@@ -113,6 +113,8 @@ function initQueryExecution() {
         try {
             if (selectedMode === "agent") {
                 await executeAgentQuery(query, technology, startTime);
+            } else if (selectedMode === "stream") {
+                await executeStreamingQuery(query, technology, startTime);
             } else {
                 await executeSearchQuery(query, technology, startTime);
             }
@@ -123,6 +125,70 @@ function initQueryExecution() {
             btnSubmit.innerHTML = `<span class="btn-icon">⚡</span><span>Execute Query</span>`;
         }
     });
+}
+
+async function executeStreamingQuery(query, technology, startTime) {
+    const respContainer = document.getElementById("response-container");
+    respContainer.classList.remove("hidden");
+    const answerEl = document.getElementById("answer-text");
+    answerEl.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">Connecting to real-time stream...</span>`;
+    document.getElementById("route-text").textContent = "Route: STREAMING SSE";
+    document.getElementById("stat-latency").textContent = "📡 Connecting...";
+    document.getElementById("stat-tokens").textContent = "🎟️ Stream active";
+
+    const response = await fetch("/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            query: query,
+            filters: technology ? { technology: technology } : null
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let fullAnswer = "";
+    answerEl.innerHTML = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+            if (line.startsWith("data: ")) {
+                try {
+                    const payload = JSON.parse(line.substring(6));
+                    if (payload.event === "token") {
+                        fullAnswer += payload.token;
+                        answerEl.innerHTML = fullAnswer.replace(/\[(\d+)\]/g, (match, p1) => {
+                            return `<span class="citation-ref" onclick="highlightChunk(${parseInt(p1) - 1})">[${p1}]</span>`;
+                        });
+                    } else if (payload.event === "status") {
+                        document.getElementById("stat-latency").textContent = `📡 ${payload.message}`;
+                    } else if (payload.event === "done") {
+                        const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
+                        document.getElementById("stat-latency").textContent = `⏱️ ${durationSec}s`;
+                        if (payload.grounding_score !== undefined) {
+                            const score = payload.grounding_score;
+                            document.getElementById("grounding-score-val").textContent = score.toFixed(2);
+                            document.getElementById("grounding-fill").style.width = `${Math.round(score * 100)}%`;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("SSE chunk parse error:", e);
+                }
+            }
+        }
+    }
 }
 
 async function executeAgentQuery(query, technology, startTime) {

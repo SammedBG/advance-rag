@@ -1,7 +1,10 @@
+import asyncio
+import json
 import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from app.core.rate_limiter import rate_limit
 from app.core.security import UserPrincipal, get_current_user
@@ -229,3 +232,133 @@ def chat(
             status_code=500,
             detail=f"{type(exc).__name__}: {exc}",
         ) from exc
+
+
+@router.post("/stream")
+async def chat_stream(
+    request: ChatRequest,
+    user: UserPrincipal = Depends(get_current_user),
+):
+    if not request.query.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query cannot be empty.",
+        )
+
+    conv_repo = get_conversation_repository()
+    conversation_id = request.conversation_id or str(uuid.uuid4())
+
+    filters = request.filters
+    if "admin" not in user.roles and user.scopes:
+        if filters is None:
+            filters = SearchFilter(access_scope=user.scopes[0])
+        elif not filters.access_scope:
+            filters.access_scope = user.scopes[0]
+
+    async def event_generator():
+        try:
+            yield f"data: {json.dumps({'event': 'status', 'message': 'Retrieving relevant context...'})}\n\n"
+            await asyncio.sleep(0.01)
+
+            history = request.history
+            if not history and conversation_id:
+                history = conv_repo.get_history(conversation_id)
+
+            conv_repo.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=request.query,
+            )
+
+            effective_query = request.query
+            if history:
+                effective_query = f"{history[-1].content} {request.query}"
+
+            search_service = get_hybrid_search()
+            reranked_results = search_service.search(
+                query=effective_query,
+                limit=request.limit,
+                retrieval_limit=max(request.limit * 4, 20),
+                filters=filters,
+            )
+
+            parent_expander = get_parent_expander()
+            expanded_results = parent_expander.expand(reranked_results)
+
+            context_selector = get_context_selector()
+            selected_contexts = context_selector.select(expanded_results)
+
+            context_compressor = get_context_compressor()
+            compressed_contexts = context_compressor.compress(
+                query=request.query,
+                contexts=selected_contexts,
+            )
+
+            if not compressed_contexts:
+                fallback_answer = "I could not find this information in the provided documentation."
+                yield f"data: {json.dumps({'event': 'token', 'token': fallback_answer})}\n\n"
+                yield f"data: {json.dumps({'event': 'done', 'conversation_id': conversation_id, 'answer': fallback_answer, 'citations': []})}\n\n"
+                return
+
+            yield f"data: {json.dumps({'event': 'status', 'message': 'Generating answer with citations...'})}\n\n"
+
+            generation_service = get_generation_service()
+            full_answer_chunks: list[str] = []
+
+            for chunk in generation_service.generate_stream(
+                query=request.query,
+                contexts=compressed_contexts,
+                history=[{"role": h.role, "content": h.content} for h in history] if history else None,
+            ):
+                full_answer_chunks.append(chunk)
+                yield f"data: {json.dumps({'event': 'token', 'token': chunk})}\n\n"
+                await asyncio.sleep(0.005)
+
+            full_answer = "".join(full_answer_chunks)
+
+            citation_validator = CitationValidator()
+            citation_validation = citation_validator.validate(
+                answer=full_answer,
+                context_count=len(compressed_contexts),
+            )
+
+            grounding_validator = get_grounding_validator()
+            grounding_validation = grounding_validator.validate(
+                answer=full_answer,
+                contexts=[c.content for c in compressed_contexts],
+            )
+
+            conv_repo.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=full_answer,
+                citations=citation_validation.citations,
+                grounding_score=grounding_validation.score,
+            )
+
+            sources_summary = [
+                {
+                    "source": idx,
+                    "title": c.title,
+                    "heading": " > ".join(c.heading_path),
+                    "chunk_id": c.chunk_id,
+                }
+                for idx, c in enumerate(compressed_contexts, start=1)
+            ]
+
+            yield f"data: {json.dumps({'event': 'done', 'conversation_id': conversation_id, 'answer': full_answer, 'citations': citation_validation.citations, 'grounding_score': grounding_validation.score, 'sources': sources_summary})}\n\n"
+
+        except Exception as exc:
+            logger.exception("Error during chat stream: %s", exc)
+            yield f"data: {json.dumps({'event': 'error', 'message': str(exc)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
