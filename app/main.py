@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.agent import router as agent_router
 from app.api.chat import router as chat_router
+from app.api.documents import router as documents_router
 from app.api.indexing import router as indexing_router
 from app.api.metrics import router as metrics_router
 from app.api.search import router as search_router
@@ -85,6 +86,7 @@ async def prometheus_metrics_middleware(request: Request, call_next) -> Response
 
 # API Routers
 app.include_router(indexing_router)
+app.include_router(documents_router)
 app.include_router(search_router)
 app.include_router(chat_router)
 app.include_router(agent_router)
