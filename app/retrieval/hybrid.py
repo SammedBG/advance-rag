@@ -1,10 +1,16 @@
+import logging
+
+from app.models.search import SearchFilter
 from app.query.transformation import QueryTransformation
 from app.query.understanding import QueryUnderstanding
 from app.retrieval.bm25 import BM25Index
+from app.retrieval.filters import MetadataFilterBuilder
 from app.retrieval.reranker import RerankResult, Reranker
 from app.retrieval.rrf import ReciprocalRankFusion, FusionResult
 from app.services.embedding import EmbeddingService
 from app.services.qdrant import QdrantService
+
+logger = logging.getLogger(__name__)
 
 
 class HybridSearch:
@@ -30,6 +36,7 @@ class HybridSearch:
         query: str,
         limit: int = 5,
         retrieval_limit: int = 20,
+        filters: SearchFilter | dict | None = None,
     ) -> list[RerankResult]:
         if not query.strip():
             return []
@@ -40,11 +47,20 @@ class HybridSearch:
         if retrieval_limit < limit:
             retrieval_limit = limit
 
+        qdrant_filter = MetadataFilterBuilder.build_qdrant_filter(filters)
+        bm25_predicate = MetadataFilterBuilder.build_chunk_predicate(filters)
+
         # ---------------------------------------------------------
         # 1. Query Understanding
         # ---------------------------------------------------------
         structured_query = self.query_understanding.understand(
             query
+        )
+
+        logger.info(
+            "Query understood: intent=%s, keywords=%s",
+            structured_query.intent,
+            structured_query.keywords,
         )
 
         # ---------------------------------------------------------
@@ -58,6 +74,11 @@ class HybridSearch:
 
         if not retrieval_queries:
             retrieval_queries = [query]
+
+        logger.info(
+            "Retrieval queries: %d",
+            len(retrieval_queries),
+        )
 
         # ---------------------------------------------------------
         # 3. Retrieve using every transformed query
@@ -73,11 +94,13 @@ class HybridSearch:
             dense_results = self.qdrant_service.search(
                 vector=query_vector,
                 limit=retrieval_limit,
+                query_filter=qdrant_filter,
             )
 
             sparse_results = self.bm25_index.search(
                 query=retrieval_query,
                 limit=retrieval_limit,
+                filter_fn=bm25_predicate,
             )
 
             dense_results_by_query.append(
@@ -97,14 +120,26 @@ class HybridSearch:
             limit=retrieval_limit,
         )
 
+        logger.info(
+            "RRF fusion: %d candidates.",
+            len(fused_results),
+        )
+
         # ---------------------------------------------------------
         # 5. Rerank using the ORIGINAL user query
         # ---------------------------------------------------------
-        return self.reranker.rerank(
+        reranked = self.reranker.rerank(
             query=query,
             results=fused_results,
             limit=limit,
         )
+
+        logger.info(
+            "Reranked: %d results.",
+            len(reranked),
+        )
+
+        return reranked
 
     def _global_rrf(
         self,

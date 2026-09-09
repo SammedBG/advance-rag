@@ -7,6 +7,12 @@ qdrant-client
 sentence-transformers
 rank-bm25
 tiktoken
+groq
 pytest
 langgraph
 mcp
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+aiosqlite>=0.20.0
+redis>=5.0.0
+pyjwt>=2.8.0

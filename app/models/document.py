@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class Document(BaseModel):
     document_id: str
+    tenant_id: str = "default"
 
     source: str
     source_type: str
@@ -13,7 +14,6 @@ class Document(BaseModel):
     content: str
 
     url: str | None = None
-
     version: str | None = None
 
     technology: str | None = None

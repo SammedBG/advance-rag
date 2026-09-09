@@ -27,38 +27,16 @@ class RAGAgent:
         )
 
         return {
-            "query": state.get(
-                "query"
-            ),
-            "route": state.get(
-                "route",
-                "rag",
-            ),
-            "answer": state.get(
-                "answer",
-                "",
-            ),
-            "citations": state.get(
-                "citations",
-                [],
-            ),
-            "citation_validation": state.get(
-                "citation_validation",
-                {},
-            ),
-            "grounding": state.get(
-                "grounding",
-                {},
-            ),
-            "context_stats": state.get(
-                "context_stats",
-                {},
-            ),
-            "mcp_result": state.get(
-                "mcp_result",
-                {},
-            ),
-            "error": state.get(
-                "error",
-            ),
+            "query": state.get("query"),
+            "original_query": state.get("original_query", state.get("query")),
+            "route": state.get("route", "rag"),
+            "iteration_count": state.get("iteration_count", 0),
+            "reasoning_trace": state.get("reasoning_trace", []),
+            "answer": state.get("answer", ""),
+            "citations": state.get("citations", []),
+            "citation_validation": state.get("citation_validation", {}),
+            "grounding": state.get("grounding", {}),
+            "context_stats": state.get("context_stats", {}),
+            "mcp_result": state.get("mcp_result", {}),
+            "error": state.get("error"),
         }

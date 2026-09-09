@@ -1,6 +1,10 @@
-from mcp.server import MCPServer
+from mcp.server.mcpserver import MCPServer
 
-from app.mcp.tools import get_pod_status
+from app.mcp.tools import (
+    get_cluster_health,
+    get_pod_status,
+    search_knowledge_base,
+)
 
 
 mcp = MCPServer(
@@ -16,10 +20,33 @@ def get_pod_status_tool(
     """
     Get the current status of a Kubernetes pod.
     """
-
     return get_pod_status(
         pod_name=pod_name,
         namespace=namespace,
+    )
+
+
+@mcp.tool()
+def get_cluster_health_tool() -> dict:
+    """
+    Get the cluster health status and node counts.
+    """
+    return get_cluster_health()
+
+
+@mcp.tool()
+def search_knowledge_base_tool(
+    query: str,
+    limit: int = 3,
+    technology: str | None = None,
+) -> dict:
+    """
+    Search the RAG knowledge base for relevant chunks.
+    """
+    return search_knowledge_base(
+        query=query,
+        limit=limit,
+        technology=technology,
     )
 
 

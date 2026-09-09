@@ -1,8 +1,6 @@
 from app.context.compressor import CompressedContext
 
-
-class PromptBuilder:
-    SYSTEM_PROMPT = """You are a documentation question-answering assistant.
+DEFAULT_SYSTEM_PROMPT = """You are a documentation question-answering assistant.
 
 Answer the user's question using ONLY the provided documentation context.
 
@@ -15,6 +13,16 @@ Rules:
 5. When the context contains commands, configuration, error messages, or code, preserve them accurately.
 6. Cite the relevant context sources using [1], [2], etc.
 """
+
+
+class PromptBuilder:
+    def __init__(
+        self,
+        system_prompt: str | None = None,
+    ) -> None:
+        self.system_prompt = (
+            system_prompt or DEFAULT_SYSTEM_PROMPT
+        )
 
     def build(
         self,
@@ -54,4 +62,4 @@ Answer the question using only the documentation context above.
 Include source citations such as [1] or [2] for the claims you make.
 """
 
-        return self.SYSTEM_PROMPT, user_prompt
+        return self.system_prompt, user_prompt

@@ -1,0 +1,62 @@
+{
+  "dataset_version": "1.0.0",
+  "description": "Evaluation benchmark dataset for RAG retrieval, context compression, and generation quality",
+  "test_cases": [
+    {
+      "query_id": "k8s_01",
+      "query": "What causes a Kubernetes pod to enter CrashLoopBackOff?",
+      "category": "troubleshooting",
+      "relevant_doc_titles": ["Kubernetes Troubleshooting"],
+      "relevant_keywords": ["crashloopbackoff", "restart", "application crashes", "missing environment variables", "failed health checks", "insufficient resources"],
+      "expected_answer": "CrashLoopBackOff occurs when a container repeatedly starts and crashes. Key causes include application crashes, missing environment variables, failed health checks, and insufficient resources."
+    },
+    {
+      "query_id": "k8s_02",
+      "query": "What should I check when seeing ImagePullBackOff in Kubernetes?",
+      "category": "troubleshooting",
+      "relevant_doc_titles": ["Kubernetes Troubleshooting"],
+      "relevant_keywords": ["imagepullbackoff", "image name", "image tag", "registry credentials", "network connectivity"],
+      "expected_answer": "When encountering ImagePullBackOff, you should check the image name, image tag, registry credentials, and network connectivity."
+    },
+    {
+      "query_id": "fastapi_01",
+      "query": "How does dependency injection work in FastAPI and what are its common use cases?",
+      "category": "factual",
+      "relevant_doc_titles": ["FastAPI Architecture and Best Practices"],
+      "relevant_keywords": ["depends", "dependency injection", "database session", "authentication", "rate limiting"],
+      "expected_answer": "FastAPI uses Depends() to declare dependencies in path operations. Common use cases include database session management, authentication and token verification, shared business services, and rate limiting."
+    },
+    {
+      "query_id": "fastapi_02",
+      "query": "When should I use async def vs standard def in FastAPI?",
+      "category": "conceptual",
+      "relevant_doc_titles": ["FastAPI Architecture and Best Practices"],
+      "relevant_keywords": ["async def", "def", "non-blocking", "threadpool", "cpu-intensive"],
+      "expected_answer": "Use async def for non-blocking I/O operations such as async database queries or HTTP calls. Use standard def for CPU-intensive tasks or synchronous blocking libraries, which run in an external threadpool."
+    },
+    {
+      "query_id": "docker_01",
+      "query": "What are best practices for optimizing Docker images with multi-stage builds?",
+      "category": "best_practices",
+      "relevant_doc_titles": ["Docker Containerization Guide"],
+      "relevant_keywords": ["multi-stage", "slim base images", "layer cache", "apt-get", "non-root"],
+      "expected_answer": "Best practices include using slim base images, ordering instructions to maximize layer cache hits, cleaning apt caches in the same RUN layer, and running containers as non-root users."
+    },
+    {
+      "query_id": "redis_01",
+      "query": "What are the common eviction policies available in Redis?",
+      "category": "factual",
+      "relevant_doc_titles": ["Redis Caching and Memory Management"],
+      "relevant_keywords": ["eviction policies", "allkeys-lru", "volatile-lru", "allkeys-lfu", "noeviction", "maxmemory"],
+      "expected_answer": "Common Redis eviction policies include allkeys-lru, volatile-lru, allkeys-lfu, and noeviction."
+    },
+    {
+      "query_id": "redis_02",
+      "query": "Explain how the cache-aside pattern works with Redis.",
+      "category": "architectural",
+      "relevant_doc_titles": ["Redis Caching and Memory Management"],
+      "relevant_keywords": ["cache-aside", "cache hit", "cache miss", "lazy loading", "ttl"],
+      "expected_answer": "In cache-aside, the application checks Redis first; on a hit it returns the data, and on a miss it queries the database, stores the result in Redis with a TTL, and returns it."
+    }
+  ]
+}
