@@ -46,6 +46,13 @@ class ChunkRepository:
     def get_by_document(self, document_id: str) -> list[DocumentChunk]:
         return self.list_by_document(document_id)
 
+    def list_by_tenant(self, tenant_id: str) -> list[DocumentChunk]:
+        return [
+            chunk
+            for chunk in self._chunks.values()
+            if chunk.tenant_id == tenant_id
+        ]
+
     def list_all(self) -> list[DocumentChunk]:
         return list(self._chunks.values())
 

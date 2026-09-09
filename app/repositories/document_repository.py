@@ -39,6 +39,12 @@ class DocumentRepository:
     def list_all(self) -> list[Document]:
         return list(self._documents.values())
 
+    def list_by_tenant(self, tenant_id: str) -> list[Document]:
+        return [
+            doc for doc in self._documents.values()
+            if doc.tenant_id == tenant_id
+        ]
+
     def delete(self, document_id: str) -> bool:
         if document_id in self._documents:
             del self._documents[document_id]
