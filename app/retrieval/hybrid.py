@@ -37,6 +37,7 @@ class HybridSearch:
         limit: int = 5,
         retrieval_limit: int = 20,
         filters: SearchFilter | dict | None = None,
+        enable_hyde: bool = False,
     ) -> list[RerankResult]:
         if not query.strip():
             return []
@@ -67,7 +68,8 @@ class HybridSearch:
         # 2. Query Transformation
         # ---------------------------------------------------------
         transformed_query = self.query_transformation.transform(
-            structured_query
+            structured_query,
+            enable_hyde=enable_hyde,
         )
 
         retrieval_queries = transformed_query.retrieval_queries

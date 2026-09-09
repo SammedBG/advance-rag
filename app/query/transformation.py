@@ -21,6 +21,7 @@ class QueryTransformation:
     def transform(
         self,
         structured_query: StructuredQuery,
+        enable_hyde: bool = False,
     ) -> TransformedQuery:
         original_query = structured_query.original_query.strip()
 
@@ -37,6 +38,10 @@ class QueryTransformation:
             structured_query,
             rewritten_query,
         )
+
+        if enable_hyde:
+            hyde_doc = self.generate_hyde_passage(original_query, structured_query.intent)
+            self._append_unique(retrieval_queries, hyde_doc)
 
         return TransformedQuery(
             original_query=original_query,
@@ -120,6 +125,59 @@ class QueryTransformation:
 
         return queries
 
+    def generate_hyde_passage(
+        self,
+        query: str,
+        intent: str | None = None,
+    ) -> str:
+        """
+        Generate a hypothetical document passage (HyDE) to improve dense vector retrieval.
+        Creates an archetype documentation paragraph matching technical expectations.
+        """
+        clean_q = query.strip().rstrip("?")
+        if intent == "troubleshooting" or "error" in clean_q.lower() or "issue" in clean_q.lower():
+            return (
+                f"When diagnosing and resolving {clean_q}, common root causes include misconfiguration, "
+                f"resource constraints, network partition, or failed dependencies. Check logs, inspect status codes, "
+                f"verify environment settings, and restart failed instances."
+            )
+        elif intent == "comparison" or " vs " in clean_q.lower():
+            return (
+                f"Comparison regarding {clean_q}: The primary differences lie in performance characteristics, "
+                f"concurrency models, architectural paradigms, memory overhead, and specific operational trade-offs."
+            )
+        elif intent == "configuration" or "setup" in clean_q.lower() or "how to" in clean_q.lower():
+            return (
+                f"To configure and set up {clean_q}: Define the required parameters in the configuration file, "
+                f"specify environment variables, apply the deployment manifests, and verify running services."
+            )
+        else:
+            return (
+                f"Overview and documentation for {clean_q}: This component provides core functionality, "
+                f"standard API interfaces, automated lifecycle management, and scalable infrastructure support."
+            )
+
+    def decompose_complex_query(
+        self,
+        query: str,
+    ) -> list[str]:
+        """
+        Decompose multi-part questions connected by conjunctions into distinct sub-queries.
+        """
+        sub_queries: list[str] = [query.strip()]
+        lower_q = query.lower()
+
+        split_delimiters = [" and also ", " as well as ", " and how to ", " along with ", " additionally "]
+        for delim in split_delimiters:
+            if delim in lower_q:
+                parts = lower_q.split(delim)
+                for part in parts:
+                    clean_part = part.strip().rstrip("?")
+                    if len(clean_part) > 5 and clean_part not in sub_queries:
+                        sub_queries.append(clean_part)
+
+        return sub_queries
+
     @staticmethod
     def _unique(
         values: list[str],
@@ -148,4 +206,4 @@ class QueryTransformation:
             return
 
         if normalized not in values:
-            values.append(normalized)
+            values.append(normalized)

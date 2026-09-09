@@ -8,9 +8,9 @@
   "mean_ndcg_at_5": 0.9473,
   "mean_compression_ratio": 0.797,
   "mean_keyword_retention": 0.5666,
-  "mean_faithfulness_score": 0.451,
-  "grounding_pass_rate": 0.5714,
-  "mean_answer_f1": 0.3894,
+  "mean_faithfulness_score": 0.4636,
+  "grounding_pass_rate": 0.7143,
+  "mean_answer_f1": 0.3601,
   "mean_citation_validity_rate": 1.0,
   "test_results": [
     {
@@ -46,12 +46,12 @@
       },
       "generation": {
         "query_id": "k8s_01",
-        "faithfulness_score": 0.474,
+        "faithfulness_score": 0.417,
         "grounded": true,
-        "answer_relevance_score": 0.2927,
-        "token_f1": 0.2927,
-        "token_precision": 0.2857,
-        "token_recall": 0.3
+        "answer_relevance_score": 0.2979,
+        "token_f1": 0.2979,
+        "token_precision": 0.2593,
+        "token_recall": 0.35
       },
       "citation": {
         "query_id": "k8s_01",
@@ -62,7 +62,7 @@
         "has_hallucinated_citations": false,
         "citation_density_per_100_words": 0.0
       },
-      "generated_answer": "CrashLoopBackOff occurs when a pod\u2019s container keeps exiting and Kubernetes repeatedly tries to start it again. The repeated failures and restarts cause the pod to enter the CrashLoopBackOff state\u30101\u2020L1-L3\u3011\u30103\u2020L1-L2\u3011.",
+      "generated_answer": "CrashLoopBackOff occurs when a pod\u2019s container repeatedly fails to start \u2013 Kubernetes keeps trying to start it, the container exits (or crashes), and the system restarts it over and over. This repeated failure and restart cycle puts the pod into the CrashLoopBackOff state\u30101\u2020L1-L3\u3011\u30103\u2020L1-L2\u3011.",
       "expected_answer": "CrashLoopBackOff occurs when a container repeatedly starts and crashes. Key causes include application crashes, missing environment variables, failed health checks, and insufficient resources."
     },
     {
@@ -98,12 +98,12 @@
       },
       "generation": {
         "query_id": "k8s_02",
-        "faithfulness_score": 0.318,
-        "grounded": false,
-        "answer_relevance_score": 0.619,
-        "token_f1": 0.619,
-        "token_precision": 0.4815,
-        "token_recall": 0.8667
+        "faithfulness_score": 0.412,
+        "grounded": true,
+        "answer_relevance_score": 0.3889,
+        "token_f1": 0.3889,
+        "token_precision": 0.3333,
+        "token_recall": 0.4667
       },
       "citation": {
         "query_id": "k8s_02",
@@ -112,9 +112,9 @@
         "invalid_citations": 0,
         "valid_citation_rate": 1.0,
         "has_hallucinated_citations": false,
-        "citation_density_per_100_words": 2.56
+        "citation_density_per_100_words": 3.03
       },
-      "generated_answer": "When you encounter an **ImagePullBackOff** it means Kubernetes is unable to pull the container image.\u202fYou should investigate why the image cannot be pulled\u202f\u2014\u202ffor example, verify the image name, tag, registry access, credentials, and network connectivity.\u202f[1]",
+      "generated_answer": "ImagePullBackOff indicates that Kubernetes is unable to pull the container image, so you should verify why the image cannot be retrieved\u202f\u2014\u202fi.e., check the image pull process and any related issues\u202f[1].",
       "expected_answer": "When encountering ImagePullBackOff, you should check the image name, image tag, registry credentials, and network connectivity."
     },
     {
@@ -150,12 +150,12 @@
       },
       "generation": {
         "query_id": "fastapi_01",
-        "faithfulness_score": 0.235,
+        "faithfulness_score": 0.286,
         "grounded": false,
-        "answer_relevance_score": 0.2188,
-        "token_f1": 0.2188,
-        "token_precision": 0.1707,
-        "token_recall": 0.3043
+        "answer_relevance_score": 0.2388,
+        "token_f1": 0.2388,
+        "token_precision": 0.1818,
+        "token_recall": 0.3478
       },
       "citation": {
         "query_id": "fastapi_01",
@@ -164,9 +164,9 @@
         "invalid_citations": 0,
         "valid_citation_rate": 1.0,
         "has_hallucinated_citations": false,
-        "citation_density_per_100_words": 1.85
+        "citation_density_per_100_words": 1.67
       },
-      "generated_answer": "FastAPI\u2019s Dependency Injection system lets you **declare dependencies directly in your path\u2011operation functions**. By specifying a dependency in the function signature, FastAPI will resolve and provide the required object when the endpoint is called\u202f[1].\n\nThe documentation excerpt does not list specific common use cases, so those details aren\u2019t available in the provided material.",
+      "generated_answer": "FastAPI provides a built\u2011in Dependency Injection system that lets developers **declare dependencies directly in path operation functions**. By specifying dependencies as function parameters, FastAPI will resolve and inject the required objects when the endpoint is called\u202f[1].\n\nThe documentation excerpt does not detail specific common use cases for this feature. I could not find this information in the provided documentation.",
       "expected_answer": "FastAPI uses Depends() to declare dependencies in path operations. Common use cases include database session management, authentication and token verification, shared business services, and rate limiting."
     },
     {
