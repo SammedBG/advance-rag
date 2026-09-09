@@ -124,6 +124,7 @@ body {
     font-weight: 800;
     letter-spacing: 0.5px;
     background: linear-gradient(135deg, #fff, #94a3b8);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -743,6 +744,7 @@ body {
     color: var(--text-secondary);
     line-height: 1.5;
     display: -webkit-box;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;

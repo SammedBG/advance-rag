@@ -8,9 +8,9 @@
   "mean_ndcg_at_5": 0.9473,
   "mean_compression_ratio": 0.797,
   "mean_keyword_retention": 0.5666,
-  "mean_faithfulness_score": 0.4323,
+  "mean_faithfulness_score": 0.451,
   "grounding_pass_rate": 0.5714,
-  "mean_answer_f1": 0.3829,
+  "mean_answer_f1": 0.3894,
   "mean_citation_validity_rate": 1.0,
   "test_results": [
     {
@@ -46,12 +46,12 @@
       },
       "generation": {
         "query_id": "k8s_01",
-        "faithfulness_score": 0.417,
+        "faithfulness_score": 0.474,
         "grounded": true,
-        "answer_relevance_score": 0.2979,
-        "token_f1": 0.2979,
-        "token_precision": 0.2593,
-        "token_recall": 0.35
+        "answer_relevance_score": 0.2927,
+        "token_f1": 0.2927,
+        "token_precision": 0.2857,
+        "token_recall": 0.3
       },
       "citation": {
         "query_id": "k8s_01",
@@ -62,7 +62,7 @@
         "has_hallucinated_citations": false,
         "citation_density_per_100_words": 0.0
       },
-      "generated_answer": "CrashLoopBackOff occurs when a pod\u2019s container repeatedly fails to start \u2013 Kubernetes keeps trying to start it, the container exits (or crashes), and the system restarts it over and over. This repeated failure and restart cycle puts the pod into the CrashLoopBackOff state\u30101\u2020L1-L3\u3011\u30103\u2020L1-L2\u3011.",
+      "generated_answer": "CrashLoopBackOff occurs when a pod\u2019s container keeps exiting and Kubernetes repeatedly tries to start it again. The repeated failures and restarts cause the pod to enter the CrashLoopBackOff state\u30101\u2020L1-L3\u3011\u30103\u2020L1-L2\u3011.",
       "expected_answer": "CrashLoopBackOff occurs when a container repeatedly starts and crashes. Key causes include application crashes, missing environment variables, failed health checks, and insufficient resources."
     },
     {
@@ -98,12 +98,12 @@
       },
       "generation": {
         "query_id": "k8s_02",
-        "faithfulness_score": 0.261,
+        "faithfulness_score": 0.318,
         "grounded": false,
-        "answer_relevance_score": 0.5714,
-        "token_f1": 0.5714,
-        "token_precision": 0.4444,
-        "token_recall": 0.8
+        "answer_relevance_score": 0.619,
+        "token_f1": 0.619,
+        "token_precision": 0.4815,
+        "token_recall": 0.8667
       },
       "citation": {
         "query_id": "k8s_02",
@@ -112,9 +112,9 @@
         "invalid_citations": 0,
         "valid_citation_rate": 1.0,
         "has_hallucinated_citations": false,
-        "citation_density_per_100_words": 2.33
+        "citation_density_per_100_words": 2.56
       },
-      "generated_answer": "ImagePullBackOff indicates that Kubernetes is unable to pull the container image, so you should verify why the image pull is failing\u202f\u2014\u202fi.e., check the image pull process and any related issues such as image name, registry access, credentials, or network connectivity.\u202f[1]",
+      "generated_answer": "When you encounter an **ImagePullBackOff** it means Kubernetes is unable to pull the container image.\u202fYou should investigate why the image cannot be pulled\u202f\u2014\u202ffor example, verify the image name, tag, registry access, credentials, and network connectivity.\u202f[1]",
       "expected_answer": "When encountering ImagePullBackOff, you should check the image name, image tag, registry credentials, and network connectivity."
     },
     {
@@ -254,23 +254,23 @@
       },
       "generation": {
         "query_id": "docker_01",
-        "faithfulness_score": 0.477,
+        "faithfulness_score": 0.494,
         "grounded": true,
-        "answer_relevance_score": 0.2,
-        "token_f1": 0.2,
-        "token_precision": 0.1279,
-        "token_recall": 0.4583
+        "answer_relevance_score": 0.2286,
+        "token_f1": 0.2286,
+        "token_precision": 0.1481,
+        "token_recall": 0.5
       },
       "citation": {
         "query_id": "docker_01",
-        "total_citations": 0,
-        "valid_citations": 0,
+        "total_citations": 2,
+        "valid_citations": 2,
         "invalid_citations": 0,
         "valid_citation_rate": 1.0,
         "has_hallucinated_citations": false,
-        "citation_density_per_100_words": 0.0
+        "citation_density_per_100_words": 1.42
       },
-      "generated_answer": "Optimizing Docker images with multi\u2011stage builds involves using the same best\u2011practice guidelines that apply to any production image, while taking advantage of the build\u2011stage separation to keep the final image minimal. Key practices are:\n\n* **Start from a slim base image** (e.g., `python:3.10-slim` or `alpine`) for the runtime stage to keep the final image small\u30101\u2020L1-L3\u3011.  \n* **Order Dockerfile instructions** from the least\u2011frequently\u2011changing to the most\u2011frequently\u2011changing so Docker can reuse cached layers and avoid unnecessary rebuilds\u30101\u2020L4-L5\u3011.  \n* **Combine package\u2011manager commands** in a single `RUN` statement (e.g., `apt-get update && apt-get install \u2026 && rm -rf /var/lib/apt/lists/*`) to reduce the number of layers and remove temporary files\u30101\u2020L6-L7\u3011.  \n* **Run the container as a non\u2011root user** to improve security\u30101\u2020L8\u3011.  \n\nMulti\u2011stage builds further reduce the final image size by separating the build environment (with all compilers, libraries, etc.) from the runtime environment, so only the artifacts needed at runtime are copied into the final, slim image\u30102\u2020L1-L2\u3011.",
+      "generated_answer": "Optimizing Docker images with multi\u2011stage builds involves using the same best\u2011practice guidelines that apply to any production image, while taking advantage of the build\u2011stage separation to keep the final image minimal. Key practices are:\n\n* **Start from a slim base image** \u2013 e.g., `python:3.10-slim` or `alpine`\u202f[1].\n* **Order Dockerfile instructions** from the least\u2011frequently\u2011changing to the most\u2011frequently\u2011changing so layer caching is maximized\u202f[1].\n* **Combine package\u2011manager commands** \u2013 run `apt-get update` and `apt-get install` together in a single `RUN` step and clean up `/var/lib/apt/lists/*` to avoid leaving unnecessary files\u202f[1].\n* **Run the container as a non\u2011root user** for better security\u202f[1].\n* **Leverage multi\u2011stage builds** to separate the build environment from the runtime environment, which dramatically reduces the size of the final image\u202f[2].\n\nApplying these practices in a multi\u2011stage Dockerfile yields a smaller, more secure, and faster\u2011building production image.",
       "expected_answer": "Best practices include using slim base images, ordering instructions to maximize layer cache hits, cleaning apt caches in the same RUN layer, and running containers as non-root users."
     },
     {
@@ -360,9 +360,9 @@
         "query_id": "redis_02",
         "faithfulness_score": 0.234,
         "grounded": false,
-        "answer_relevance_score": 0.3768,
-        "token_f1": 0.3768,
-        "token_precision": 0.25,
+        "answer_relevance_score": 0.3514,
+        "token_f1": 0.3514,
+        "token_precision": 0.2281,
         "token_recall": 0.7647
       },
       "citation": {
@@ -372,9 +372,9 @@
         "invalid_citations": 0,
         "valid_citation_rate": 1.0,
         "has_hallucinated_citations": false,
-        "citation_density_per_100_words": 1.03
+        "citation_density_per_100_words": 0.93
       },
-      "generated_answer": "The cache\u2011aside (lazy\u2011loading) pattern with Redis works as follows:\n\n1. **Read** \u2013 The application first looks for the requested data in Redis.  \n2. **Cache miss** \u2013 If the key is not found, the application queries the primary database for the data.  \n3. **Populate cache** \u2013 The retrieved result is then written back into Redis, typically with a time\u2011to\u2011live (TTL) so the entry will expire automatically.  \n4. **Return** \u2013 The data is returned to the caller, now also cached for subsequent requests.\n\nThus, Redis is only populated on demand, and stale data is cleared by the TTL.\u202f[1]",
+      "generated_answer": "The cache\u2011aside (lazy\u2011loading) pattern with Redis works as follows:\n\n1. **Read** \u2013 The application first looks for the requested data in Redis.  \n2. **Cache miss** \u2013 If the key is not found, the application queries the primary database for the data.  \n3. **Populate cache** \u2013 The retrieved result is then written back into Redis, typically with a time\u2011to\u2011live (TTL) so the entry will expire automatically.  \n4. **Return** \u2013 The data is returned to the caller, and future reads can be served from the cache until the TTL expires or the entry is invalidated.\n\nThese steps implement lazy loading, where the cache is only populated on a miss.\u202f[1]",
       "expected_answer": "In cache-aside, the application checks Redis first; on a hit it returns the data, and on a miss it queries the database, stores the result in Redis with a TTL, and returns it."
     }
   ]

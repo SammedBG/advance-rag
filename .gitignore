@@ -1,5 +1,7 @@
 .venv/
 .env.example
+evaluation_scorecard.json
+
 __pycache__/
 *.py[cod]
 
